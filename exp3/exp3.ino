@@ -54,7 +54,8 @@ void setup() {
 void loop() {
   // contador();
   // potenciometroum();
-  ledpawn();
+  // ledpawn300ms();
+  ledpawnPWMmanual();
 }
 /////////////////////////////////////////
 /////////////////////////////////////////
@@ -67,20 +68,66 @@ void loop() {
 
 
 
+void ledpawnPWMmanual() {
+  int cycleTime = 1000;        //PWM cycle time in microseconds (1ms)
+  int steps = 1000;             //tempo total da subidadescida em ms
+  steps /= 2; 
+  int duty;
+
+  //0% -> 100% em steps/2
+  for (int i = 0; i <= steps; i++) {
+    float duty = (float)i / steps;
+
+    int onTime = cycleTime * duty;
+    int offTime = cycleTime - onTime;
+
+    digitalWrite(ledpin, HIGH);
+    delayMicroseconds(onTime);
+    digitalWrite(ledpin, LOW);
+    delayMicroseconds(offTime);
+  }
+
+  //100% -> 0% em steps/2
+  for (int i = steps; i >= 0; i--) {
+    float duty = (float)i / steps;
+
+    int onTime = cycleTime * duty;
+    int offTime = cycleTime - onTime;
+
+    digitalWrite(ledpin, HIGH);
+    delayMicroseconds(onTime);
+    digitalWrite(ledpin, LOW);
+    delayMicroseconds(offTime);
+
+  }
+}
 
 
-void ledpawn(){
-  // delayed = 300 -> 100 times of increments of 3 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void ledpawn300ms(){
   int delayed = 300;
   int dInc = delayed / 100;
   
   digitalWrite(ledpin, HIGH);
-  for(int i = 0; i<100; i++){
-    delay(dInc)
-  }
+  delay(dInc);
   digitalWrite(ledpin, LOW);
   delay(delayed);
-  //TODO -> analog output library
 }
 
 
