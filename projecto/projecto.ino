@@ -1,5 +1,4 @@
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+#include <LiquidCrystal.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -9,14 +8,15 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
 
-#define BTN_MODO1 2  //botão modo 1
-#define BTN_MODO2 3  //botão modo 2
-#define BTN_MODO3 4  //botão modo 3
+#define BTN_MODO1 8   // botão modo 1
+#define BTN_MODO2 9   // botão modo 2
+#define BTN_MODO3 10  // botão modo 3
 
-const int pinoLEDs[10]   = {5,6,7,8,9,10,11,12,13,A0};  //pinos dos leds
-const int pinoBotoes[10] = {A1,A2,A3,A4,A5,A6,A7,A8,A9,A10};  //pinos dos botões de jogo
+const int pinoLEDs[10]   = {11, 12, 13, A0, A1, A2, A3, A4, A5, A6};    // pinos dos LEDs
+const int pinoBotoes[10] = {A7, A8, A9, A10, A11, A12, A13, A14, A15, A16}; // pinos dos botões de jogo
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);  //endereço e dimensões do LCD
+//               RS, E, D4, D5, D6, D7
+LiquidCrystal lcd(2, 3,  4,  5,  6,  7);
 
 enum Estado { AGUARDANDO_SELECAO, MOSTRANDO_DESC, EXECUTANDO_JOGO, MOSTRANDO_RESULTADO };
 Estado estadoAtual = AGUARDANDO_SELECAO;  //estado inicial
@@ -35,14 +35,18 @@ int pontuacao;                  //armazena pontos
 
 void setup() {
   Serial.begin(9600);                     //inicializa serial
-  lcd.init(); lcd.backlight();            //inicializa lcd e retroiluminação
+  
+  lcd.begin(16, 2); 
+  
   pinMode(BTN_MODO1, INPUT_PULLUP);       //configura botão modo 1 com pullup
   pinMode(BTN_MODO2, INPUT_PULLUP);       //configura botão modo 2 com pullup
   pinMode(BTN_MODO3, INPUT_PULLUP);       //configura botão modo 3 com pullup
+  
   for(int i=0;i<10;i++){
     pinMode(pinoLEDs[i], OUTPUT);         //configura pino do led como saída
     pinMode(pinoBotoes[i], INPUT_PULLUP); //configura pino do botão com pullup
   }
+  
   lcd.clear();                            //limpa tela
   lcd.setCursor(0,0);
   lcd.print("selecione jogo 1-3");        //mensagem inicial
