@@ -12,8 +12,8 @@
 #define BTN_MODO2 9   // botão modo 2
 #define BTN_MODO3 10  // botão modo 3
 
-const int pinoLEDs[10]   = {11, 12, 13, A0, A1, A2, A3, A4, A5, A6};    // pinos dos LEDs
-const int pinoBotoes[10] = {A7, A8, A9, A10, A11, A12, A13, A14, A15, A16}; // pinos dos botões de jogo
+const int pinoLEDs[10]   = {A0, A1,  A2,  A3,  A4,  A5,  A6,  A7};    // pinos dos LEDs
+const int pinoBotoes[10] = {A8, A9, A10, A11, A12, A13, A14, A15}; // pinos dos botões de jogo
 
 //               RS, E, D4, D5, D6, D7
 LiquidCrystal lcd(2, 3,  4,  5,  6,  7);
