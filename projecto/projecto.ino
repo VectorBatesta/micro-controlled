@@ -1,291 +1,252 @@
 #include <LiquidCrystal.h>
 
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////           PINAGEM           /////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
+// PINAGEM E CONSTANTES
+#define BTN_MODO1 8
+#define BTN_MODO2 9
+#define BTN_MODO3 10
 
-#define BTN_MODO1 8   // botão modo 1
-#define BTN_MODO2 9   // botão modo 2
-#define BTN_MODO3 10  // botão modo 3
+const int NUM_LEDS_BOTOES = 8;
+const int pinoLEDs[NUM_LEDS_BOTOES]   = {A0, A1,  A2,  A3,  A4,  A5,  A6,  A7};
+const int pinoBotoes[NUM_LEDS_BOTOES] = {A8, A9, A10, A11, A12, A13, A14, A15};
 
-const int pinoLEDs[10]   = {A0, A1,  A2,  A3,  A4,  A5,  A6,  A7};    // pinos dos LEDs
-const int pinoBotoes[10] = {A8, A9, A10, A11, A12, A13, A14, A15}; // pinos dos botões de jogo
-
-//               RS, E, D4, D5, D6, D7
 LiquidCrystal lcd(2, 3,  4,  5,  6,  7);
 
+// ESTADOS DO PROGRAMA
 enum Estado { AGUARDANDO_SELECAO, MOSTRANDO_DESC, EXECUTANDO_JOGO, MOSTRANDO_RESULTADO };
-Estado estadoAtual = AGUARDANDO_SELECAO;  //estado inicial
+Estado estadoAtual = AGUARDANDO_SELECAO;
 
-int jogoSelecionado = -1;       //índice do jogo
-unsigned long tempoInicio;      //marca início de temporização
-int pontuacao;                  //armazena pontos
+// VARIÁVEIS GLOBAIS
+int jogoSelecionado = -1;
+unsigned long tempoInicio;
+int pontuacao;
 
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
+// VARIÁVEIS PARA LEITURA DE BOTÃO (LÓGICA MELHORADA)
+bool modo1PressionadoAntes = false;
+bool modo2PressionadoAntes = false;
+bool modo3PressionadoAntes = false;
+
 
 void setup() {
-  Serial.begin(9600);                     //inicializa serial
+  Serial.begin(9600);
+  Serial.println("--- INICIANDO DIAGNOSTICO ---");
   
   lcd.begin(16, 2); 
   
-  pinMode(BTN_MODO1, INPUT_PULLUP);       //configura botão modo 1 com pullup
-  pinMode(BTN_MODO2, INPUT_PULLUP);       //configura botão modo 2 com pullup
-  pinMode(BTN_MODO3, INPUT_PULLUP);       //configura botão modo 3 com pullup
+  pinMode(BTN_MODO1, INPUT_PULLUP);
+  pinMode(BTN_MODO2, INPUT_PULLUP);
+  pinMode(BTN_MODO3, INPUT_PULLUP);
   
-  for(int i=0;i<10;i++){
-    pinMode(pinoLEDs[i], OUTPUT);         //configura pino do led como saída
-    pinMode(pinoBotoes[i], INPUT_PULLUP); //configura pino do botão com pullup
+  for(int i = 0; i < NUM_LEDS_BOTOES; i++){
+    pinMode(pinoLEDs[i], OUTPUT);
+    pinMode(pinoBotoes[i], INPUT_PULLUP);
   }
   
-  lcd.clear();                            //limpa tela
+  lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print("selecione jogo 1-3");        //mensagem inicial
+  lcd.print("selecione jogo 1-3");
+  Serial.println("Setup completo. Estado inicial: AGUARDANDO_SELECAO");
 }
 
-
-
-
-
-
-
-
-
-
-
-
 void loop() {
+  verificaBotoesModo();
+  
   switch(estadoAtual){
     case AGUARDANDO_SELECAO:
-      verificaBotoesModo();               //aguarda seleção de jogo
+     
       break;
     case MOSTRANDO_DESC:
-      exibeDescricao();                   //mostra descrição do jogo
+
       break;
     case EXECUTANDO_JOGO:
-      executarJogoSelecionado();         //executa lógica do jogo
+      executarJogoSelecionado();
       break;
     case MOSTRANDO_RESULTADO:
-      if(qualquerModoPressionado())       //aguarda reinício após resultado
+      if(qualquerModoPressionado())
         reiniciarParaSelecao();
       break;
   }
 }
 
-
-
+// ================================================================
+//               FUNCOES DE CONTROLE E ESTADO
+// ================================================================
 
 void verificaBotoesModo() {
-  if(!digitalRead(BTN_MODO1)) aoBotaoModoPressionado(0);  //botão 1 pressionado?
-  if(!digitalRead(BTN_MODO2)) aoBotaoModoPressionado(1);  //botão 2 pressionado?
-  if(!digitalRead(BTN_MODO3)) aoBotaoModoPressionado(2);  //botão 3 pressionado?
+  bool modo1PressionadoAgora = !digitalRead(BTN_MODO1);
+  bool modo2PressionadoAgora = !digitalRead(BTN_MODO2);
+  bool modo3PressionadoAgora = !digitalRead(BTN_MODO3);
+
+  if (modo1PressionadoAgora && !modo1PressionadoAntes) aoBotaoModoPressionado(0);
+  if (modo2PressionadoAgora && !modo2PressionadoAntes) aoBotaoModoPressionado(1);
+  if (modo3PressionadoAgora && !modo3PressionadoAntes) aoBotaoModoPressionado(2);
+
+  modo1PressionadoAntes = modo1PressionadoAgora;
+  modo2PressionadoAntes = modo2PressionadoAgora;
+  modo3PressionadoAntes = modo3PressionadoAgora;
 }
-
-bool qualquerModoPressionado() {
-  //verifica qualquer botão de modo
-  return !digitalRead(BTN_MODO1)
-      || !digitalRead(BTN_MODO2)
-      || !digitalRead(BTN_MODO3);
-}
-
-
-
-
 
 void aoBotaoModoPressionado(int idx) {
-  delay(200);  //debounce
+
+  Serial.println("------------------------------------");
+  Serial.println("FUNCAO 'aoBotaoModoPressionado' CHAMADA!");
+  Serial.print("  > Botao pressionado (idx): "); Serial.println(idx);
+  Serial.print("  > Valor de 'estadoAtual' ANTES da logica: "); Serial.println(estadoAtual);
+  Serial.print("  > Valor de 'jogoSelecionado' ANTES da logica: "); Serial.println(jogoSelecionado);
+
   if(estadoAtual == AGUARDANDO_SELECAO){
-    jogoSelecionado = idx;             //define jogo selecionado
-    estadoAtual = MOSTRANDO_DESC;      //muda para mostrar descrição
+    jogoSelecionado = idx;
+    estadoAtual = MOSTRANDO_DESC;
+    Serial.println("  >> MUDANDO ESTADO PARA MOSTRANDO_DESC");
+    exibeDescricao(); // Chama a função para desenhar a tela uma única vez
   }
   else if(estadoAtual == MOSTRANDO_DESC && jogoSelecionado == idx){
-    estadoAtual = EXECUTANDO_JOGO;     //inicia jogo
+    estadoAtual = EXECUTANDO_JOGO;
+    Serial.println("  >>> SUCESSO! MUDANDO ESTADO PARA EXECUTANDO_JOGO <<<");
+  } else {
+    Serial.println("  >> CONDICAO PARA INICIAR O JOGO FALHOU!");
   }
+  Serial.println("------------------------------------");
 }
-
-
-
-
-
 
 void exibeDescricao() {
-  lcd.clear();                          //limpa lcd
+  lcd.clear();
   lcd.setCursor(0,0);
+  switch(jogoSelecionado) {
+    case 0: lcd.print("1: Teste Reacao"); break;
+    case 1: lcd.print("2: Jogo Temporiz."); break;
+    case 2: lcd.print("3: Bate-Toupeira"); break;
+  }
+  lcd.setCursor(0,1);
+  lcd.print("Pressione p/ confirmar"); 
+}
 
+void executarJogoSelecionado() {
+  lcd.clear();
+  pontuacao = 0;
   
-  if(jogoSelecionado==0){
-    lcd.print("1: teste reacao");      //descrição jogo 1
-    lcd.setCursor(0,1);
-    lcd.print("pressione p iniciar");
-  }
-  else if(jogoSelecionado==1){
-    lcd.print("2: jogo temporizado");  //descrição jogo 2
-    lcd.setCursor(0,1);
-    lcd.print("pressione p iniciar");
-  }
-  else {
-    lcd.print("3: bate-toupeira");     //descrição jogo 3
-    lcd.setCursor(0,1);
-    lcd.print("pressione p iniciar");
-  }
+  Serial.print("EXECUTANDO JOGO: "); Serial.println(jogoSelecionado);
 
-
-  
-  while(estadoAtual == MOSTRANDO_DESC){
-    if(qualquerModoPressionado())
-      break;  //aguarda confirmação
-    delay(50);
+  switch(jogoSelecionado){
+    case 0: jogoReacao(); break;
+    case 1: jogoTemporizado(); break;
+    case 2: jogoBateToupeira(); break;
   }
+  estadoAtual = MOSTRANDO_RESULTADO;
 }
 
 
-
-
-
-
-
-
-
-void executarJogoSelecionado() {
-  lcd.clear();                          //prepara tela para jogo
-  pontuacao = 0;                        //zera pontuação
-  switch(jogoSelecionado){
-    case 0: jogoReacao();       break;  //chama teste de reação
-    case 1: jogoTemporizado();  break;  //chama jogo temporizado
-    case 2: jogoBateToupeira(); break;  //chama bate-toupeira
-  }
-  estadoAtual = MOSTRANDO_RESULTADO;    //muda para mostrar resultado
+bool qualquerModoPressionado() {
+ return !digitalRead(BTN_MODO1) || !digitalRead(BTN_MODO2) || !digitalRead(BTN_MODO3);
 }
 
 void reiniciarTodosLEDs(bool ligado) {
-  for(int i = 0; i < 10; i++)
-    digitalWrite(pinoLEDs[i], ligado);  //liga/desliga todos leds
+  for(int i = 0; i < NUM_LEDS_BOTOES; i++)
+    digitalWrite(pinoLEDs[i], ligado);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-//////////////////////////////       GAMES       //////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////
 
 void jogoReacao() {
-  int alvo = random(0,10);              //escolhe led aleatório
-  digitalWrite(pinoLEDs[alvo], HIGH);   //acende led alvo
+  int alvo = random(0, NUM_LEDS_BOTOES);
   
-  lcd.setCursor(0,0);
-  lcd.print("reaja ao LED...");         //instrução
-  
-  tempoInicio = millis();               //marca início
-  while(digitalRead(pinoBotoes[alvo])); //espera botão correto
-  unsigned long dt = millis() - tempoInicio;  //calcula tempo
-  
-  digitalWrite(pinoLEDs[alvo], LOW);    //apaga led alvo
-  
+  Serial.print("  JOGO REACAO: Alvo eh o par LED/Botao de indice: ");
+  Serial.println(alvo);
+
+  digitalWrite(pinoLEDs[alvo], HIGH);
   lcd.clear();
-  lcd.print("tempo: ");
-  lcd.print(dt);   //mostra resultado
-  lcd.print(" ms");
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-
-void jogoTemporizado() {
-  reiniciarTodosLEDs(HIGH);             //liga todos leds
   lcd.setCursor(0,0);
-  lcd.print("prepare-se...");           //aviso de partida
-  delay(1000);                          //tempo de preparação
+  lcd.print("Reaja ao LED!");
   
-  for(int i=0;i<10;i++){
-    digitalWrite(pinoLEDs[i], LOW);     //desliga leds em sequência
-    delay(100);
+  tempoInicio = millis();
+  
+  // Laço corrigido: espera o pino ir para LOW
+  while(digitalRead(pinoBotoes[alvo]) == HIGH) {
+    // Fica em loop esperando o pressionamento
+    // Podemos adicionar um timeout aqui no futuro, se quisermos
   }
   
-  lcd.clear();
-  lcd.print("AGORA!");     //início do timing
-  tempoInicio = millis();               //marca início
+  // Assim que o botão é pressionado, sai do loop
+  unsigned long dt = millis() - tempoInicio;
   
+  // Um pequeno delay para debounce do botão
+  delay(50);
+
+  digitalWrite(pinoLEDs[alvo], LOW);
+  
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Tempo: ");
+  lcd.print(dt);
+  lcd.setCursor(0,1);
+  lcd.print("ms");
+  
+  Serial.print("  JOGO REACAO: Reacao em ");
+  Serial.print(dt);
+  Serial.println(" ms.");
+
+  // Espera qualquer botão de modo ser pressionado para sair
+  // e mostrar o resultado final antes de voltar ao menu.
+  delay(1000); // Mostra o resultado por 1s
+  while(qualquerModoPressionado()){ /* espera soltar o botão de jogo */ }
+  Serial.println("Aguardando botao de modo para continuar...");
+  while(!qualquerModoPressionado()){ /* espera pressionar um modo */ }
+}
+
+
+void jogoTemporizado() {
+  reiniciarTodosLEDs(HIGH);
+  lcd.setCursor(0,0);
+  lcd.print("prepare-se...");
+  delay(1000);
+  for(int i = 0; i < NUM_LEDS_BOTOES; i++){
+    digitalWrite(pinoLEDs[i], LOW);
+    delay(100);
+  }
+  lcd.clear();
+  lcd.print("AGORA!");
+  tempoInicio = millis();
   while(true){
-    for(int i=0;i<10;i++){
-      if(!digitalRead(pinoBotoes[i])){  //espera qualquer botão
+    for(int i = 0; i < NUM_LEDS_BOTOES; i++){
+      if(!digitalRead(pinoBotoes[i])){
         unsigned long dt = millis() - tempoInicio;
-        
         lcd.clear();
         lcd.print("tempo:"); lcd.print(dt);
         lcd.print(" ms"); 
+        delay(2000); // Pausa para ver o resultado
         return;
       }
     }
   }
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-
 void jogoBateToupeira() {
-  unsigned long fim = millis() + 30000; //tempo total 30s
-  
+  unsigned long fim = millis() + 30000;
   while(millis() < fim){
-    int toupeira = random(0,10);        //escolhe aleatório
-    
-    digitalWrite(pinoLEDs[toupeira], HIGH);  //acende por 1s
+    int toupeira = random(0,NUM_LEDS_BOTOES);
+    digitalWrite(pinoLEDs[toupeira], HIGH);
     unsigned long onTime = millis();
-    
     bool acertou = false;
     while(millis() - onTime < 1000){
-      for(int b=0;b<10;b++){
-        if(!digitalRead(pinoBotoes[b])){ //verifica botão
-          if(b==toupeira) pontuacao++;   //acerto
-          else fim -= 5000;               //erro penaliza
+      for(int b=0;b<NUM_LEDS_BOTOES;b++){
+        if(!digitalRead(pinoBotoes[b])){
+          if(b==toupeira) pontuacao++;
+          else fim -= 5000;
           acertou = true;
           break;
         }
       }
       if(acertou) break;
     }
-    digitalWrite(pinoLEDs[toupeira], LOW); //apaga led
-    delay(200);                           //pausa breve
+    digitalWrite(pinoLEDs[toupeira], LOW);
+    delay(200);
   }
-  
   lcd.clear();
-  lcd.print("pontuacao:"); lcd.print(pontuacao);  //mostra pontos
+  lcd.print("pontuacao:"); lcd.print(pontuacao);
+  delay(2000); // Pausa para ver o resultado
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////
-
-
-
 
 void reiniciarParaSelecao() {
   lcd.clear();
   lcd.setCursor(0,0);
-  lcd.print("selecione jogo 1-3");        //retorna ao menu
-  
+  lcd.print("selecione jogo 1-3");
   estadoAtual = AGUARDANDO_SELECAO;
+  Serial.println("--- REINICIANDO PARA O MENU ---");
 }
